@@ -1,10 +1,8 @@
+// app/(tabs)/_layout.tsx
 import { Tabs } from 'expo-router';
 import React from 'react';
-import { Platform } from 'react-native';
 
-import { HapticTab } from '@/components/HapticTab';
-import { IconSymbol } from '@/components/ui/IconSymbol';
-import TabBarBackground from '@/components/ui/TabBarBackground';
+import { IconSymbol } from '../../components/ui/IconSymbol';
 import { Colors } from '@/constants/Colors';
 import { useColorScheme } from '@/hooks/useColorScheme';
 
@@ -16,28 +14,28 @@ export default function TabLayout() {
       screenOptions={{
         tabBarActiveTintColor: Colors[colorScheme ?? 'light'].tint,
         headerShown: false,
-        tabBarButton: HapticTab,
-        tabBarBackground: TabBarBackground,
-        tabBarStyle: Platform.select({
-          ios: {
-            // Use a transparent background on iOS to show the blur effect
-            position: 'absolute',
-          },
-          default: {},
-        }),
       }}>
       <Tabs.Screen
         name="index"
         options={{
-          title: 'Home',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="house.fill" color={color} />,
+          title: 'Personagens',
+          headerShown: true, // Mostra o header na lista principal
+          tabBarIcon: ({ color, focused }) => (
+            // CORREÇÃO: Usando nomes de ícones válidos para SF Symbols.
+            <IconSymbol name={'list.bullet'} color={color} />
+          ),
         }}
       />
       <Tabs.Screen
         name="explore"
         options={{
-          title: 'Explore',
-          tabBarIcon: ({ color }) => <IconSymbol size={28} name="paperplane.fill" color={color} />,
+          title: 'Favoritos',
+          headerShown: true, // Mostra o header na lista de favoritos
+          tabBarIcon: ({ color, focused }) => (
+            // CORREÇÃO: Usando nomes de ícones válidos para SF Symbols.
+            // 'heart.fill' para quando estiver focado, 'heart' para o contorno.
+            <IconSymbol name={focused ? 'heart.fill' : 'heart'} color={color} />
+          ),
         }}
       />
     </Tabs>

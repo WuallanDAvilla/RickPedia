@@ -1,110 +1,148 @@
-import { Image } from 'expo-image';
-import { Platform, StyleSheet } from 'react-native';
+// app/(tabs)/explore.tsx
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, Text, View, FlatList, Image, ActivityIndicator, TouchableOpacity } from 'react-native';
+// CORREÇÃO 1: Importar o 'router' para navegação programática.
+import { router } from 'expo-router';
+import { useIsFocused } from '@react-navigation/native';
+import api from '../../services/api';
+import * as favoritesService from '../../services/favoritesService';
 
-import { Collapsible } from '@/components/Collapsible';
-import { ExternalLink } from '@/components/ExternalLink';
-import ParallaxScrollView from '@/components/ParallaxScrollView';
-import { ThemedText } from '@/components/ThemedText';
-import { ThemedView } from '@/components/ThemedView';
-import { IconSymbol } from '@/components/ui/IconSymbol';
+type Character = {
+  id: number;
+  name: string;
+  image: string;
+};
 
-export default function TabTwoScreen() {
+export default function FavoritesScreen() {
+  const [favoriteCharacters, setFavoriteCharacters] = useState<Character[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const isFocused = useIsFocused();
+
+  const loadFavorites = useCallback(async () => {
+    try {
+      setLoading(true);
+      const favoriteIds = await favoritesService.getFavorites();
+
+      if (favoriteIds.length === 0) {
+        setFavoriteCharacters([]);
+        return;
+      }
+
+      const response = await api.get(`/character/${favoriteIds.join(',')}`);
+      const charactersData = Array.isArray(response.data) ? response.data : [response.data];
+      setFavoriteCharacters(charactersData);
+      setError(null);
+
+    } catch (err) {
+      setError('Falha ao carregar os favoritos.');
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isFocused) {
+      loadFavorites();
+    }
+  }, [isFocused, loadFavorites]);
+
+  const renderCharacter = ({ item }: { item: Character }) => (
+    // CORREÇÃO FINAL E DEFINITIVA: Usando `as any` para contornar
+    // o erro de tipagem persistente do Expo Router.
+    <TouchableOpacity
+      style={styles.itemContainer}
+      onPress={() => router.push(`/character/${item.id}` as any)}
+    >
+      <Image source={{ uri: item.image }} style={styles.itemImage} />
+      <Text style={styles.itemText}>{item.name}</Text>
+    </TouchableOpacity>
+  );
+
+  if (loading) {
+    return (
+      <View style={styles.centered}>
+        <ActivityIndicator size="large" color="#00ff00" />
+        <Text>Carregando favoritos...</Text>
+      </View>
+    );
+  }
+
+  if (error) {
+    return (
+      <View style={styles.centered}>
+        <Text>{error}</Text>
+      </View>
+    );
+  }
+
+  if (favoriteCharacters.length === 0) {
+    return (
+      <View style={styles.centered}>
+        <Text style={styles.emptyText}>Você ainda não tem favoritos! 💔</Text>
+        <Text style={styles.subEmptyText}>Adicione personagens na tela principal para vê-los aqui.</Text>
+      </View>
+    );
+  }
+
   return (
-    <ParallaxScrollView
-      headerBackgroundColor={{ light: '#D0D0D0', dark: '#353636' }}
-      headerImage={
-        <IconSymbol
-          size={310}
-          color="#808080"
-          name="chevron.left.forwardslash.chevron.right"
-          style={styles.headerImage}
-        />
-      }>
-      <ThemedView style={styles.titleContainer}>
-        <ThemedText type="title">Explore</ThemedText>
-      </ThemedView>
-      <ThemedText>This app includes example code to help you get started.</ThemedText>
-      <Collapsible title="File-based routing">
-        <ThemedText>
-          This app has two screens:{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/index.tsx</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">app/(tabs)/explore.tsx</ThemedText>
-        </ThemedText>
-        <ThemedText>
-          The layout file in <ThemedText type="defaultSemiBold">app/(tabs)/_layout.tsx</ThemedText>{' '}
-          sets up the tab navigator.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/router/introduction">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Android, iOS, and web support">
-        <ThemedText>
-          You can open this project on Android, iOS, and the web. To open the web version, press{' '}
-          <ThemedText type="defaultSemiBold">w</ThemedText> in the terminal running this project.
-        </ThemedText>
-      </Collapsible>
-      <Collapsible title="Images">
-        <ThemedText>
-          For static images, you can use the <ThemedText type="defaultSemiBold">@2x</ThemedText> and{' '}
-          <ThemedText type="defaultSemiBold">@3x</ThemedText> suffixes to provide files for
-          different screen densities
-        </ThemedText>
-        <Image source={require('@/assets/images/react-logo.png')} style={{ alignSelf: 'center' }} />
-        <ExternalLink href="https://reactnative.dev/docs/images">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Custom fonts">
-        <ThemedText>
-          Open <ThemedText type="defaultSemiBold">app/_layout.tsx</ThemedText> to see how to load{' '}
-          <ThemedText style={{ fontFamily: 'SpaceMono' }}>
-            custom fonts such as this one.
-          </ThemedText>
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/versions/latest/sdk/font">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Light and dark mode components">
-        <ThemedText>
-          This template has light and dark mode support. The{' '}
-          <ThemedText type="defaultSemiBold">useColorScheme()</ThemedText> hook lets you inspect
-          what the user&apos;s current color scheme is, and so you can adjust UI colors accordingly.
-        </ThemedText>
-        <ExternalLink href="https://docs.expo.dev/develop/user-interface/color-themes/">
-          <ThemedText type="link">Learn more</ThemedText>
-        </ExternalLink>
-      </Collapsible>
-      <Collapsible title="Animations">
-        <ThemedText>
-          This template includes an example of an animated component. The{' '}
-          <ThemedText type="defaultSemiBold">components/HelloWave.tsx</ThemedText> component uses
-          the powerful <ThemedText type="defaultSemiBold">react-native-reanimated</ThemedText>{' '}
-          library to create a waving hand animation.
-        </ThemedText>
-        {Platform.select({
-          ios: (
-            <ThemedText>
-              The <ThemedText type="defaultSemiBold">components/ParallaxScrollView.tsx</ThemedText>{' '}
-              component provides a parallax effect for the header image.
-            </ThemedText>
-          ),
-        })}
-      </Collapsible>
-    </ParallaxScrollView>
+    <View style={styles.container}>
+      <FlatList
+        data={favoriteCharacters}
+        renderItem={renderCharacter}
+        keyExtractor={(item) => item.id.toString()}
+        numColumns={2}
+        contentContainerStyle={{ paddingBottom: 20 }}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  headerImage: {
-    color: '#808080',
-    bottom: -90,
-    left: -35,
-    position: 'absolute',
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: '#fff',
+    padding: 20,
   },
-  titleContainer: {
-    flexDirection: 'row',
-    gap: 8,
+  container: {
+    flex: 1,
+    backgroundColor: '#fff',
   },
+  itemContainer: {
+    flex: 1,
+    flexDirection: 'column',
+    margin: 8,
+    alignItems: 'center',
+    backgroundColor: '#f9f9f9',
+    borderRadius: 8,
+    padding: 10,
+    elevation: 3,
+  },
+  itemImage: {
+    width: 150,
+    height: 150,
+    borderRadius: 8,
+  },
+  itemText: {
+    marginTop: 8,
+    fontSize: 16,
+    fontWeight: 'bold',
+    textAlign: 'center',
+  },
+  emptyText: {
+    fontSize: 22,
+    fontWeight: 'bold',
+    marginBottom: 8,
+    textAlign: 'center',
+    color: '#333'
+  },
+  subEmptyText: {
+    fontSize: 16,
+    textAlign: 'center',
+    color: '#666'
+  }
 });
